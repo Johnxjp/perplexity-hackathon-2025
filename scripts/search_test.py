@@ -11,7 +11,7 @@ search = perplexity.chat.completions.create(
     messages=[
         {
             "role": "user", 
-            "content": "Show me image and a url for 'The pleasure of finding things out'. Response format is {'image': image, 'url': url}"
+            "content": "Show me image and a url for 'Schmidt Futures'. Response format is {'image': image, 'url': url}"
         }
     ],
     return_images=True,
