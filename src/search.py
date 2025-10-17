@@ -17,6 +17,10 @@ class SearchResponseFormat(BaseModel):
     image_url: str
 
 
+class SearchContentResponseFormat(SearchResponseFormat):
+    title: str
+
+
 def search_perplexity(
     query: str,
     model: str = "sonar",
@@ -85,8 +89,6 @@ def search_twitter(
     """Returns a tweet url matching the text and author"""
     return ""
 
-class SearchContentResponseFormat(SearchResponseFormat):
-    title: str
 
 def search_content(
     description: str,
