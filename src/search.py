@@ -110,6 +110,7 @@ def search_content(
     Respond in using the format {str(SearchContentResponseFormat.model_json_schema())}
     where title is a headline summary of the content.
     """
+    # TODO: https://twitterapi.io/ much cheaper
     # if content_type == "tweet":
     #     return search_twitter(text, author)
 
