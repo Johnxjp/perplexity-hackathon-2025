@@ -1,7 +1,8 @@
-import os
+from typing import Tuple
 
 from pytubefix import YouTube
 import requests
+from youtube_transcript_api import YouTubeTranscriptApi
 
 
 def download_image_file(url: str, dest_path: str) -> None:
@@ -35,4 +36,74 @@ def download_youtube_video(url: str, output_path: str = "./data/", resolution: s
     stream = yt.streams.filter(file_extension="mp4")
     stream = stream.get_by_resolution(resolution) or stream.get_highest_resolution()
     file_path = stream.download(output_path=output_path)
+    yt.captions
     return file_path
+
+
+def download_youtube_transcript(yt_video_id: str) -> Tuple[float, float, str]:
+    """
+    Downloads the transcripts of a YouTube video given its video ID.
+
+    Args:
+        yt_video_id (str): The video ID of the YouTube video. https://www.youtube.com/watch?v=_ahTP_Zn7nU -> _ahTP_Zn7nU
+
+    Returns:
+        Tuple[float, float, str]: A list of transcript segments with their start times, durations, and text. Times are in seconds.
+    """
+    if _is_yt_url(yt_video_id):
+        yt_video_id = _extract_yt_video_id(yt_video_id)
+
+    try:
+        ytt = YouTubeTranscriptApi()
+        transcripts = ytt.fetch(yt_video_id)
+        return [
+            (float(segment.start), float(segment.duration), _clean_transcript_text(segment.text))
+            for segment in transcripts.snippets
+        ]
+    except Exception as e:
+        print(f"Error downloading transcripts for {yt_video_id}: {e}")
+        return []
+
+
+def _is_yt_url(url: str) -> bool:
+    """
+    Checks if a given URL is a YouTube URL.
+
+    Args:
+        url (str): The URL to check.
+    Returns:
+        bool: True if the URL is a YouTube URL, False otherwise.
+    """
+    return "youtube.com" in url or "youtu.be" in url
+
+
+def _extract_yt_video_id(url: str) -> str:
+    """
+    Extracts the YouTube video ID from a given URL.
+
+    Args:
+        url (str): The URL of the YouTube video.
+    Returns:
+    """
+    if "v=" in url:
+        return url.split("v=")[1].split("&")[0]
+    elif "youtu.be/" in url:
+        return url.split("youtu.be/")[1].split("?")[0]
+    return ""
+
+
+def _clean_transcript_text(text: str) -> str:
+    """
+    Cleans the transcript text by removing unwanted characters or formatting.
+
+    Args:
+        text (str): The transcript text to clean.
+
+    Returns:
+        str: The cleaned transcript text.
+    """
+    # Remove any unwanted characters or formatting
+    text = text.replace("\xa0\n", " ")
+    text = text.replace("\xa0", " ")
+    text = text.replace("  ", " ")
+    return text.strip()
