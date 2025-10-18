@@ -36,7 +36,8 @@ def download_youtube_video(url: str, output_path: str = "./data/", resolution: s
     stream = yt.streams.filter(file_extension="mp4")
     stream = stream.get_by_resolution(resolution) or stream.get_highest_resolution()
     file_path = stream.download(output_path=output_path)
-    yt.captions
+    title = yt.title
+    publish_date = yt.publish_date  # We can use for search filtering
     return file_path
 
 
