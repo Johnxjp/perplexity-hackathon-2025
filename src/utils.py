@@ -1,4 +1,6 @@
 import os
+
+from pytubefix import YouTube
 import requests
 
 
@@ -16,3 +18,21 @@ def download_image_file(url: str, dest_path: str) -> None:
                 f.write(chunk)
     else:
         print(f"Failed to download image from {url}, status code: {response.status_code}")
+
+
+def download_youtube_video(url: str, output_path: str = "./data/", resolution: str = "720p") -> str:
+    """
+    Downloads a YouTube video from the given URL to the specified output path.
+
+    Args:
+        url (str): The URL of the YouTube video.
+        output_path (str): The directory where the video will be saved.
+
+    Returns:
+        str: The file path of the downloaded video.
+    """
+    yt = YouTube(url)
+    stream = yt.streams.filter(file_extension="mp4")
+    stream = stream.get_by_resolution(resolution) or stream.get_highest_resolution()
+    file_path = stream.download(output_path=output_path)
+    return file_path
