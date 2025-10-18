@@ -3,8 +3,10 @@ from typing import Literal
 
 from dotenv import load_dotenv
 from perplexity import Perplexity
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import requests
+
+from src.utils import is_valid_url
 
 load_dotenv()
 
@@ -18,6 +20,18 @@ class SearchResponseFormat(BaseModel):
 
 
 class SearchContentResponseFormat(SearchResponseFormat):
+    headline: str = Field(default="Brief headline summary of the content")
+
+
+class SearchBookResponseFormat(SearchResponseFormat):
+    title: str
+
+
+class SearchItemResponseFormat(SearchResponseFormat):
+    name: str
+
+
+class SearchVideoResponseFormat(SearchResponseFormat):
     title: str
 
 
@@ -47,6 +61,7 @@ def search_perplexity(
 
     try:
         response = requests.post(url, headers=headers, json=data)
+        print(response.json())
         return response.json()
     except Exception as e:
         print(f"Error occurred: {e}")
@@ -64,6 +79,7 @@ def search_person(name: str) -> SearchResponseFormat:
     result = SearchResponseFormat.model_validate_json(
         completion["choices"][0]["message"]["content"]
     )
+    result.image_url = result.image_url if is_valid_url(result.image_url) else ""
     return result
 
 
@@ -78,6 +94,8 @@ def search_organisation(name: str) -> SearchResponseFormat:
     result = SearchResponseFormat.model_validate_json(
         completion["choices"][0]["message"]["content"]
     )
+    result.web_url = result.web_url if is_valid_url(result.web_url) else ""
+    result.image_url = result.image_url if is_valid_url(result.image_url) else ""
     return result
 
 
@@ -90,34 +108,85 @@ def search_twitter(
     return ""
 
 
+def search_book(title: str, author: str | None = None) -> SearchBookResponseFormat:
+    query = f"""
+    Return a source url and image url for the book '{title}'.
+    The author is '{author or "unknown"}'.
+    Return a Goodreads or Amazon url if available, otherwise return another relevant url.
+
+    Respond in using the format {str(SearchBookResponseFormat.model_json_schema())}
+    """
+    completion = search_perplexity(query, response_format=SearchBookResponseFormat)
+    result = SearchBookResponseFormat.model_validate_json(
+        completion["choices"][0]["message"]["content"]
+    )
+    result.web_url = result.web_url if is_valid_url(result.web_url) else ""
+    result.image_url = result.image_url if is_valid_url(result.image_url) else ""
+    return result
+
+
+def search_item(
+    name: str,
+    content_source: str | None = None,
+) -> SearchItemResponseFormat:
+    query = f"""
+    Return a source url and image url for the item '{name}'.
+    If content_type is 'item', return url from {content_source or "a reputable e-commerce site"}.
+    The content source is '{content_source or "unknown"}'.
+
+    Respond in using the format {str(SearchItemResponseFormat.model_json_schema())}
+    """
+    completion = search_perplexity(query, response_format=SearchItemResponseFormat)
+    result = SearchItemResponseFormat.model_validate_json(
+        completion["choices"][0]["message"]["content"]
+    )
+    result.web_url = result.web_url if is_valid_url(result.web_url) else ""
+    result.image_url = result.image_url if is_valid_url(result.image_url) else ""
+    return result
+
+
+def search_video(
+    description: str,
+) -> SearchVideoResponseFormat:
+    query = f"""
+    Return a source url and image url for the video referencing '{description}'.
+    Return a YouTube url if available, otherwise return another relevant url.
+    For the image url, return a thumbnail or relevant image if available.
+    Return title of the video as well.
+
+    Respond in using the format {str(SearchVideoResponseFormat.model_json_schema())}
+    """
+    completion = search_perplexity(query, response_format=SearchVideoResponseFormat)
+    result = SearchVideoResponseFormat.model_validate_json(
+        completion["choices"][0]["message"]["content"]
+    )
+    result.web_url = result.web_url if is_valid_url(result.web_url) else ""
+    result.image_url = result.image_url if is_valid_url(result.image_url) else ""
+    return result
+
+
 def search_content(
     description: str,
-    author: str | None = None,
-    content_type: Literal["article", "video", "book", "tweet"] | None = "article",
-    content_source: str | None = None,  # e.g., "New York Times", "YouTube", "Twitter" etc.
+    content_source: (
+        str | None
+    ) = None,  # e.g., "New York Times", "YouTube", "Twitter", "Amazon" etc.
     date: str | None = None,
 ) -> SearchContentResponseFormat:
     # TODO: Maybe add search filters based on date
     query = f"""
-    Return a source url and for the {content_type or "content"} referencing '{description}'.
-    The author is '{author or "unknown"}' and the content date is '{date or "unknown"}'.
-
-    If content_type is 'video', return source url from YouTube.
-    If content_type is 'book', return a Goodreads or Amazon url.
-    If content_type is 'article', return url from {content_source or "a reputable news site"}.
+    Return a source url and image url for the "content" referencing '{description}'.
+    
+    If content is 'article', return url from {content_source or "a reputable news site"}.
     If otherwise, return a relevant url.
 
     Respond in using the format {str(SearchContentResponseFormat.model_json_schema())}
     where title is a headline summary of the content.
     """
-    # TODO: https://twitterapi.io/ much cheaper
-    # if content_type == "tweet":
-    #     return search_twitter(text, author)
-
     completion = search_perplexity(query, response_format=SearchContentResponseFormat)
     result = SearchContentResponseFormat.model_validate_json(
         completion["choices"][0]["message"]["content"]
     )
+    result.image_url = result.image_url if is_valid_url(result.image_url) else ""
     return result
 
 
@@ -136,4 +205,5 @@ def search_event(
     result = SearchResponseFormat.model_validate_json(
         completion["choices"][0]["message"]["content"]
     )
+    result.image_url = result.image_url if is_valid_url(result.image_url) else ""
     return result

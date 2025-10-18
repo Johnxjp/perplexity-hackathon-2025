@@ -108,3 +108,21 @@ def _clean_transcript_text(text: str) -> str:
     text = text.replace("\xa0", " ")
     text = text.replace("  ", " ")
     return text.strip()
+
+
+def is_valid_url(url: str) -> bool:
+    """
+    Validates if a given string is a valid URL.
+
+    Args:
+        url (str): The URL string to validate.
+    """
+    if not url.startswith("http://") and not url.startswith("https://"):
+        return False
+
+    try:
+        response = requests.get(url)
+        print("RESPONSE", response)
+        return response.status_code == 200
+    except requests.RequestException:
+        return False
